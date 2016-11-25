@@ -15,9 +15,7 @@ window.oCancelAnimationFrame ||
   window.clearTimeout(handle)
 
 class InfiniteScroll
-  constructor: (scrollHeight, scrollCallback, @option) ->
-    @wrapper = document.body
-
+  constructor: (@wrapper, scrollHeight, scrollCallback, @option) ->
     @lowExpand = if @option && @option.lowExpand then @option.lowExpand else 0.1 * scrollHeight
     @highExpand = if @option && @option.highExpand then @option.highExpand else 0.1 * scrollHeight
     @scrollPlaceholder = document.createElement 'div'
@@ -55,7 +53,35 @@ class InfiniteScroll
     return dest
 
   scrollTo: (target) ->
+    if target == @lastScrollTop
+      return
     document.body.scrollTop = document.documentElement.scrollTop = target
     progress = (target - @lowExpand) / @scrollHeight
+    @lastScrollTop = target
     if @scrollCallback
       @scrollCallback progress
+
+  calcProgressToScroll: (progress) ->
+    return @lowExpand + progress * @scrollHeight
+
+  travelTo: (target, callback) ->
+    if @isTraveling
+      return
+    @isTraveling = true
+    { scroll, progress } = target
+    currentTop = @lastScrollTop
+    if typeof scroll == 'undefined' && typeof progress != 'undefined'
+      scroll = @calcProgressToScroll progress
+    if scroll < currentTop
+      scroll += @scrollHeight
+    travel = () =>
+      currentTop += Math.ceil (scroll - currentTop) / 30
+      @scrollTo @calcScroll currentTop
+      if Math.abs(currentTop - scroll) < 1
+        cancelAnimationFrame @travelHandler
+        if callback && typeof callback == 'function'
+          callback()
+        @isTraveling = false
+      else
+        @travelHandler = requestAnimationFrame travel
+    @travelHandler = requestAnimationFrame travel

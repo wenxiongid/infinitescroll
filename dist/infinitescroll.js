@@ -10,9 +10,9 @@ cancelAnimationFrame = window.cancelAnimationFrame || window.webkitCancelAnimati
 };
 
 InfiniteScroll = (function() {
-  function InfiniteScroll(scrollHeight, scrollCallback, option) {
+  function InfiniteScroll(wrapper, scrollHeight, scrollCallback, option) {
+    this.wrapper = wrapper;
     this.option = option;
-    this.wrapper = document.body;
     this.lowExpand = this.option && this.option.lowExpand ? this.option.lowExpand : 0.1 * scrollHeight;
     this.highExpand = this.option && this.option.highExpand ? this.option.highExpand : 0.1 * scrollHeight;
     this.scrollPlaceholder = document.createElement('div');
@@ -59,11 +59,51 @@ InfiniteScroll = (function() {
 
   InfiniteScroll.prototype.scrollTo = function(target) {
     var progress;
+    if (target === this.lastScrollTop) {
+      return;
+    }
     document.body.scrollTop = document.documentElement.scrollTop = target;
     progress = (target - this.lowExpand) / this.scrollHeight;
+    this.lastScrollTop = target;
     if (this.scrollCallback) {
       return this.scrollCallback(progress);
     }
+  };
+
+  InfiniteScroll.prototype.calcProgressToScroll = function(progress) {
+    return this.lowExpand + progress * this.scrollHeight;
+  };
+
+  InfiniteScroll.prototype.travelTo = function(target, callback) {
+    var currentTop, progress, scroll, travel;
+    if (this.isTraveling) {
+      return;
+    }
+    this.isTraveling = true;
+    scroll = target.scroll, progress = target.progress;
+    currentTop = this.lastScrollTop;
+    if (typeof scroll === 'undefined' && typeof progress !== 'undefined') {
+      scroll = this.calcProgressToScroll(progress);
+    }
+    if (scroll < currentTop) {
+      scroll += this.scrollHeight;
+    }
+    travel = (function(_this) {
+      return function() {
+        currentTop += Math.ceil((scroll - currentTop) / 30);
+        _this.scrollTo(_this.calcScroll(currentTop));
+        if (Math.abs(currentTop - scroll) < 1) {
+          cancelAnimationFrame(_this.travelHandler);
+          if (callback && typeof callback === 'function') {
+            callback();
+          }
+          return _this.isTraveling = false;
+        } else {
+          return _this.travelHandler = requestAnimationFrame(travel);
+        }
+      };
+    })(this);
+    return this.travelHandler = requestAnimationFrame(travel);
   };
 
   return InfiniteScroll;
