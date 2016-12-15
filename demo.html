@@ -1,16 +1,91 @@
-<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>infiniteScroll DEMO</title>
-  <link rel="stylesheet" href="demo.css">
+  <meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
+  <title>infinite scroll</title>
+  <style>
+    html,body{
+      height: 100%;
+      margin: 0;
+    }
+    #wrapper{
+      transition: 200ms opacity;
+    }
+    #fixedContainer{
+      position: fixed;
+      width: 1920px;
+      height: 1000px;
+      top: 50%;
+      left: 50%;
+      margin-top: -500px;
+      margin-left: -960px;
+    }
+    #controller{
+      position: absolute;
+      width: 200px;
+      height: 100px;
+      line-height: 50px;
+      top: 50%;
+      left: 50%;
+      margin-top: -25px;
+      margin-left: -100px;
+      font-size: 30px;
+      color: #eee;
+      text-align: center;
+    }
+  </style>
 </head>
 <body>
-<div class="module-wrapper">
-  <div id="wrapper"></div>
+<div id="wrapper">
+  <div id="fixedContainer">
+    <div id="controller">
+      <p class="progress-num"></p>
+      <form action="#" id="travelForm">
+        <input type="text" class="target" />
+        <input type="checkbox" class="jump-flag" />
+        <select class="towards">
+          <option value="default">default</option>
+          <option value="UP">UP</option>
+          <option value="DOWN">DOWN</option>
+        </select>
+        <button type="submit">Travel</button>
+      </form>
+    </div>
+  </div>
 </div>
-<script src="//cdn.bootcss.com/jquery/3.1.1/jquery.min.js"></script>
-<script src="dist/infinitescroll.js"></script>
-<script src="demo.js"></script>
+<script type="text/javascript" src="https://code.jquery.com/jquery-1.12.4.min.js"></script>
+<script type="text/javascript" src="dist/infinitescroll.js"></script>
+<script type="text/javascript">
+  var wrapper = document.getElementById('wrapper');
+  var $progressEl = $('#controller .progress-num');
+  var $jumpFlag = $('#controller .jump-flag');
+  var $towards = $('#controller .towards');
+  var $target = $('#controller .target');
+  var scroller = new InfiniteScroll(wrapper, 5000, function(progress){
+    $progressEl.text(progress);
+    $(wrapper).css('background-color','hsl('+ progress * 360 +', 30%, 50%)')
+  });
+  $('#travelForm').bind('submit', function(e){
+    e.preventDefault()
+    var isJump = $jumpFlag.prop('checked');
+    var towards = $towards.val();
+    var targetNum = $target.val();
+    var target = {};
+    if(Math.abs(targetNum) > 1)
+      target.scroll = targetNum;
+    else
+      target.progress = targetNum;
+    scroller.travelTo(target, function(){
+      $('#wrapper').css('opacity', 0.8);
+      setTimeout(function(){
+        $('#wrapper').css('opacity', 1);
+      }, 200);
+    }, {
+      isJump: isJump,
+      towards: towards
+    })
+    return false;
+  });
+</script>
 </body>
 </html>
